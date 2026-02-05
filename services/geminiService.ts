@@ -2,7 +2,11 @@
 import { GoogleGenAI } from "@google/genai";
 import { STUDENT_INFO, SKILLS, PROJECTS } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+const getClient = () => {
+  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+};
 
 const SYSTEM_PROMPT = `
 You are the personal AI assistant for ${STUDENT_INFO.name}, a first-year Computer Science student.
@@ -24,13 +28,19 @@ Guidelines:
 
 export const getGeminiResponse = async (history: { role: string, content: string }[]) => {
   try {
+    const ai = getClient();
+    if (!ai) {
+      console.warn("Gemini API Key missing");
+      return "I'm currently in demo mode because my API key hasn't been set. Please contact Nitesh to enable my full capabilities!";
+    }
+
     const contents = history.map(h => ({
       role: h.role,
       parts: [{ text: h.content }]
     }));
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: contents as any,
       config: {
         systemInstruction: SYSTEM_PROMPT,
